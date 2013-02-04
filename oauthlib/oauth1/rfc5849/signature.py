@@ -25,6 +25,7 @@ Steps for signing a request:
 import binascii
 import hashlib
 import hmac
+import logging
 try:
     import urlparse
 except ImportError:
@@ -32,6 +33,8 @@ except ImportError:
 from . import utils
 from oauthlib.common import bytes_type, extract_params, safe_string_equals, unicode_type
 
+
+logger = logging.getLogger(__name__)
 
 def construct_base_string(http_method, base_string_uri,
         normalized_encoded_request_parameters):
@@ -514,11 +517,15 @@ def verify_hmac_sha1(request, client_secret=None,
 
     .. _`section 3.4`: http://tools.ietf.org/html/rfc5849#section-3.4
     """
-    norm_params = normalize_parameters(request.params)
-    uri = normalize_base_string_uri(request.uri)
-    base_string = construct_base_string(request.http_method, uri, norm_params)
+    normalized_params = normalize_parameters(request.params)
+    logger.debug("Normalized params: {0}".format(normalized_params))
+    normalized_uri = normalize_base_string_uri(request.uri)
+    logger.debug("Normalized URI: {0}".format(normalized_uri))
+    base_string = construct_base_string(request.http_method, normalized_uri, normalized_params)
+    logger.debug("Base signing string: {0}".format(base_string))
     signature = sign_hmac_sha1(base_string, client_secret,
         resource_owner_secret)
+    logger.debug("Signature: {0}".format(signature))
     return safe_string_equals(signature, request.signature)
 
 
@@ -536,9 +543,9 @@ def verify_rsa_sha1(request, rsa_public_key):
     from Crypto.Signature import PKCS1_v1_5
     from Crypto.Hash import SHA
     key = RSA.importKey(rsa_public_key)
-    norm_params = normalize_parameters(request.params)
-    uri = normalize_base_string_uri(request.uri)
-    message = construct_base_string(request.http_method, uri, norm_params)
+    normalized_params = normalize_parameters(request.params)
+    normalized_uri = normalize_base_string_uri(request.uri)
+    message = construct_base_string(request.http_method, normalized_uri, normalized_params)
     h = SHA.new(message.encode('utf-8'))
     p = PKCS1_v1_5.new(key)
     sig = binascii.a2b_base64(request.signature.encode('utf-8'))
