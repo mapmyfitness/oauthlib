@@ -759,9 +759,9 @@ class Server(object):
         # We check this before validating client and resource owner for
         # increased security and performance, both gained by doing less work.
         if require_verifier:
-            token = {"request_token": request.resource_owner_key}
+            token = {str("request_token"): request.resource_owner_key}
         else:
-            token = {"access_token": request.resource_owner_key}
+            token = {str("access_token"): request.resource_owner_key}
         if not self.validate_timestamp_and_nonce(request.client_key,
                 request.timestamp, request.nonce, **token):
                 return False, request
